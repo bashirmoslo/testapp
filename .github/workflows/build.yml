@@ -1,9 +1,8 @@
-name: EAS Build on Push to Main
+name: EAS Build on PR Opened
 
 on:
-  push:
-    branches:
-      - main
+  pull_request:
+    types: [opened]
 
 jobs:
   build:
