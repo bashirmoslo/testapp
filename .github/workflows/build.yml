@@ -6,5 +6,19 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - name: 🏗 Setup repo
+        uses: actions/checkout@v4
+
+      - name: 🏗 Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18.x
+
+      - name: 🏗 Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
       - name: 🚀 Run EAS workflow
         run: eas workflow:run create-production-builds.yml --non-interactive
