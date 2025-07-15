@@ -1,4 +1,4 @@
-name: Deploy to production
+name: Manual Update Deployment
 
 jobs:
   fingerprint:
@@ -20,22 +20,6 @@ jobs:
     params:
       fingerprint_hash: ${{ needs.fingerprint.outputs.ios_fingerprint_hash }}
       profile: staging
-
-  build_ios_staging:
-    name: Build iOS staging
-    needs: [get_ios_staging_build]
-    if: ${{ !needs.get_ios_staging_build.outputs.build_id }}
-    type: build
-    params:
-      platform: ios
-      profile: staging
-
-  submit_ios_staging_build:
-    name: Submit iOS staging build
-    needs: [build_ios_staging]
-    type: submit
-    params:
-      build_id: ${{ needs.build_ios_staging.outputs.build_id }}
 
   publish_ios_update:
     name: Publish iOS production update
