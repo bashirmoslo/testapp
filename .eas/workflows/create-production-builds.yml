@@ -1,9 +1,6 @@
 name: Deploy to production
 
-on:
-  pull_request_labeled:
-    - bug
-    - Test
+on: pull_request
 
 jobs:
   fingerprint:
