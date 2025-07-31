@@ -3,7 +3,6 @@ name: React Native CI/CD
 on:
   - pull_request
   - workflow_call
-  - push
 
 permissions:
   contents: read
@@ -111,5 +110,5 @@ jobs:
       - name: ✅ Build successful
         run: |
           echo "🎉 Build completed successfully!"
-          echo " APK generated: ./app-dev.apk"
-          echo "✅ All validation and build steps passed"
+git          echo " APK generated: ./app-dev.apk"
+  echo "✅ All validation and build steps passed"
