@@ -3,7 +3,6 @@ name: React Native CI/CD
 on:
   - pull_request
   - workflow_call
-  - push
 
 permissions:
   contents: read
@@ -12,7 +11,6 @@ permissions:
 env:
   EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
   NODE_OPTIONS: --openssl-legacy-provider
-  MOBILE_DIR: apps/mobile
 
 jobs:
   check-skip:
@@ -29,31 +27,24 @@ jobs:
       - name: 🏗 Checkout repository
         uses: actions/checkout@v4
 
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.2
+
       - name: 🏗 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "yarn"
-
-      - name: 📦 Get yarn cache directory path
-        id: yarn-cache-dir-path
-        run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
-
-      - name: 📦 Setup yarn cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-
+          cache: "pnpm"
 
       - name: 📦 Install dependencies
         run: |
-          yarn install
-          yarn global add eas-cli@latest
+          pnpm install --frozen-lockfile
+          pnpm add -g eas-cli@latest
 
       - name: 📱 Setup EAS build cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.eas-build-local
           key: ${{ runner.os }}-eas-build-local-${{ hashFiles('**/package.json') }}
@@ -65,70 +56,26 @@ jobs:
           echo "EAS CLI version:"
           eas --version
 
-      - name: 📋 Fix package.json main entry
+      - name: 🧹 Generate native Android project files
         run: |
-          cd ${{ env.MOBILE_DIR }}
+          cd packages/app
+          npx expo prebuild --platform android --clean
 
-          if ! command -v jq &> /dev/null; then
-            echo "Installing jq..."
-            sudo apt-get update && sudo apt-get install -y jq
-          fi
-
-          if [ -f ./package.json ]; then
-            cp package.json package.json.bak
-            jq '.main = "node_modules/expo/AppEntry.js"' package.json > package.json.tmp && mv package.json.tmp package.json
-            echo "Updated package.json main entry"
-            cat package.json | grep "main"
-          else
-            echo "package.json not found"
-            exit 1
-          fi
-
-      - name: 📋 Update metro.config.js for SVG support
+      - name: 🔧 Install Android dependencies
         run: |
-          cd ${{ env.MOBILE_DIR }}
-
-          if [ -f ./metro.config.js ]; then
-            echo "Creating backup of metro.config.js"
-            cp ./metro.config.js ./metro.config.js.backup
-            echo "Updating metro.config.js to CommonJS format"
-            cat > ./metro.config.js << 'EOFMARKER'
-          /* eslint-disable @typescript-eslint/no-var-requires */
-          const { getDefaultConfig } = require('expo/metro-config');
-
-          const config = getDefaultConfig(__dirname);
-
-          const { transformer, resolver } = config;
-
-          config.transformer = {
-            ...transformer,
-            babelTransformerPath: require.resolve('react-native-svg-transformer/expo'),
-          };
-
-          config.resolver = {
-            ...resolver,
-            assetExts: resolver.assetExts.filter(ext => ext !== 'svg'),
-            sourceExts: [...resolver.sourceExts, 'svg'],
-          };
-
-          module.exports = config;
-          EOFMARKER
-            echo "metro.config.js updated to CommonJS format"
-          else
-            echo "metro.config.js not found"
-          fi
+          cd packages/app
+          npx expo install --fix
 
       - name: 📱 Build Development APK
         run: |
-          cd ${{ env.MOBILE_DIR }}
-
           export NODE_OPTIONS="--openssl-legacy-provider --max_old_space_size=4096"
-          eas build --platform android --profile development --local --non-interactive --output=./app-dev.apk
+          cd packages/app
+          eas build --platform android --profile development --local --non-interactive --output=../../app-dev.apk
         env:
           NODE_ENV: development
 
       - name: ✅ Build successful
         run: |
           echo "🎉 Build completed successfully!"
-          echo " APK generated: ${{ env.MOBILE_DIR }}/app-dev.apk"
+          echo " APK generated: ./app-dev.apk"
           echo "✅ All validation and build steps passed"
