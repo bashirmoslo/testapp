@@ -27,19 +27,24 @@ jobs:
       - name: 🏗 Checkout repository
         uses: actions/checkout@v4
 
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.2
+
       - name: 🏗 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
+          cache: "pnpm"
 
       - name: 📦 Install dependencies
         run: |
-          npm ci
-          npm install -g eas-cli@latest
+          pnpm install --frozen-lockfile
+          pnpm add -g eas-cli@latest
 
       - name: 📱 Setup EAS build cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.eas-build-local
           key: ${{ runner.os }}-eas-build-local-${{ hashFiles('**/package.json') }}
@@ -58,23 +63,23 @@ jobs:
             sudo apt-get update && sudo apt-get install -y jq
           fi
 
-          if [ -f ./package.json ]; then
-            cp package.json package.json.bak
-            jq '.main = "node_modules/expo/AppEntry.js"' package.json > package.json.tmp && mv package.json.tmp package.json
+          if [ -f ./packages/app/package.json ]; then
+            cp packages/app/package.json packages/app/package.json.bak
+            jq '.main = "node_modules/expo/AppEntry.js"' packages/app/package.json > packages/app/package.json.tmp && mv packages/app/package.json.tmp packages/app/package.json
             echo "Updated package.json main entry"
-            cat package.json | grep "main"
+            cat packages/app/package.json | grep "main"
           else
-            echo "package.json not found"
+            echo "packages/app/package.json not found"
             exit 1
           fi
 
       - name: 📋 Update metro.config.js for SVG support
         run: |
-          if [ -f ./metro.config.js ]; then
+          if [ -f ./packages/app/metro.config.js ]; then
             echo "Creating backup of metro.config.js"
-            cp ./metro.config.js ./metro.config.js.backup
+            cp ./packages/app/metro.config.js ./packages/app/metro.config.js.backup
             echo "Updating metro.config.js to CommonJS format"
-            cat > ./metro.config.js << 'EOFMARKER'
+            cat > ./packages/app/metro.config.js << 'EOFMARKER'
           /* eslint-disable @typescript-eslint/no-var-requires */
           const { getDefaultConfig } = require('expo/metro-config');
 
@@ -97,13 +102,14 @@ jobs:
           EOFMARKER
             echo "metro.config.js updated to CommonJS format"
           else
-            echo "metro.config.js not found"
+            echo "packages/app/metro.config.js not found"
           fi
 
       - name: 📱 Build Development APK
         run: |
           export NODE_OPTIONS="--openssl-legacy-provider --max_old_space_size=4096"
-          eas build --platform android --profile development --local --non-interactive --output=./app-dev.apk
+          cd packages/app
+          eas build --platform android --profile development --local --non-interactive --output=../../app-dev.apk
         env:
           NODE_ENV: development
 
