@@ -3,7 +3,6 @@ name: React Native CI/CD
 on:
   - pull_request
   - workflow_call
-  - push
 
 permissions:
   contents: read
@@ -12,7 +11,6 @@ permissions:
 env:
   EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
   NODE_OPTIONS: --openssl-legacy-provider
-  MOBILE_DIR: apps/mobile
 
 jobs:
   check-skip:
@@ -33,24 +31,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "yarn"
-
-      - name: 📦 Get yarn cache directory path
-        id: yarn-cache-dir-path
-        run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
-
-      - name: 📦 Setup yarn cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-
+          cache: "npm"
 
       - name: 📦 Install dependencies
         run: |
-          yarn install
-          yarn global add eas-cli@latest
+          npm ci
+          npm install -g eas-cli@latest
 
       - name: 📱 Setup EAS build cache
         uses: actions/cache@v3
@@ -67,8 +53,6 @@ jobs:
 
       - name: 📋 Fix package.json main entry
         run: |
-          cd ${{ env.MOBILE_DIR }}
-
           if ! command -v jq &> /dev/null; then
             echo "Installing jq..."
             sudo apt-get update && sudo apt-get install -y jq
@@ -86,8 +70,6 @@ jobs:
 
       - name: 📋 Update metro.config.js for SVG support
         run: |
-          cd ${{ env.MOBILE_DIR }}
-
           if [ -f ./metro.config.js ]; then
             echo "Creating backup of metro.config.js"
             cp ./metro.config.js ./metro.config.js.backup
@@ -120,8 +102,6 @@ jobs:
 
       - name: 📱 Build Development APK
         run: |
-          cd ${{ env.MOBILE_DIR }}
-
           export NODE_OPTIONS="--openssl-legacy-provider --max_old_space_size=4096"
           eas build --platform android --profile development --local --non-interactive --output=./app-dev.apk
         env:
@@ -130,5 +110,5 @@ jobs:
       - name: ✅ Build successful
         run: |
           echo "🎉 Build completed successfully!"
-          echo " APK generated: ${{ env.MOBILE_DIR }}/app-dev.apk"
+          echo " APK generated: ./app-dev.apk"
           echo "✅ All validation and build steps passed"
