@@ -10,6 +10,7 @@ permissions:
 
 env:
   EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
   NODE_OPTIONS: --openssl-legacy-provider
   MOBILE_DIR: apps/mobile
 
