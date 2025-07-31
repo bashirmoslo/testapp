@@ -28,7 +28,6 @@ yarn-error.*
 .pnpm-debug.log*
 
 # pnpm
-pnpm-lock.yaml
 
 # macOS
 .DS_Store
