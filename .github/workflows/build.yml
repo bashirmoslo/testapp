@@ -56,54 +56,15 @@ jobs:
           echo "EAS CLI version:"
           eas --version
 
-      - name: 📋 Fix package.json main entry
+      - name: 🧹 Generate native Android project files
         run: |
-          if ! command -v jq &> /dev/null; then
-            echo "Installing jq..."
-            sudo apt-get update && sudo apt-get install -y jq
-          fi
+          cd packages/app
+          npx expo prebuild --platform android --clean
 
-          if [ -f ./packages/app/package.json ]; then
-            cp packages/app/package.json packages/app/package.json.bak
-            jq '.main = "node_modules/expo/AppEntry.js"' packages/app/package.json > packages/app/package.json.tmp && mv packages/app/package.json.tmp packages/app/package.json
-            echo "Updated package.json main entry"
-            cat packages/app/package.json | grep "main"
-          else
-            echo "packages/app/package.json not found"
-            exit 1
-          fi
-
-      - name: 📋 Update metro.config.js for SVG support
+      - name: 🔧 Install Android dependencies
         run: |
-          if [ -f ./packages/app/metro.config.js ]; then
-            echo "Creating backup of metro.config.js"
-            cp ./packages/app/metro.config.js ./packages/app/metro.config.js.backup
-            echo "Updating metro.config.js to CommonJS format"
-            cat > ./packages/app/metro.config.js << 'EOFMARKER'
-          /* eslint-disable @typescript-eslint/no-var-requires */
-          const { getDefaultConfig } = require('expo/metro-config');
-
-          const config = getDefaultConfig(__dirname);
-
-          const { transformer, resolver } = config;
-
-          config.transformer = {
-            ...transformer,
-            babelTransformerPath: require.resolve('react-native-svg-transformer/expo'),
-          };
-
-          config.resolver = {
-            ...resolver,
-            assetExts: resolver.assetExts.filter(ext => ext !== 'svg'),
-            sourceExts: [...resolver.sourceExts, 'svg'],
-          };
-
-          module.exports = config;
-          EOFMARKER
-            echo "metro.config.js updated to CommonJS format"
-          else
-            echo "packages/app/metro.config.js not found"
-          fi
+          cd packages/app
+          npx expo install --fix
 
       - name: 📱 Build Development APK
         run: |
