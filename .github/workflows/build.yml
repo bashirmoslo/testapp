@@ -110,5 +110,5 @@ jobs:
       - name: ✅ Build successful
         run: |
           echo "🎉 Build completed successfully!"
-git          echo " APK generated: ./app-dev.apk"
-  echo "✅ All validation and build steps passed"
+          echo " APK generated: ./app-dev.apk"
+          echo "✅ All validation and build steps passed"
